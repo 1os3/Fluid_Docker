@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>流体粒子模拟器 - 高性能实时WebGL流体仿真</title>
+
+        <meta name="description" content="基于WebGL的高性能实时粒子流体模拟与渲染系统，支持多种物理参数调节和交互模式。">
+        <meta name="keywords" content="流体模拟,WebGL,粒子系统,物理仿真,实时渲染">
+
+        <link href='https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap' rel='stylesheet' type='text/css'>
+        <link rel="stylesheet" href="flip.css"/>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    </head>
+
+    <body>
+        <script type="text/template" id="main">
+            <style>
+                .editing-ui {
+                    display: none;
+                }
+
+                .simulating-ui {
+                    display: none;
+                }
+            </style>
+
+            <canvas id="canvas" width="1920" height="1080"></canvas>
+            
+            <div id="ui" class="control-panel">
+                <div class="panel-header">
+                    <h2>流体模拟控制台</h2>
+                </div>
+                
+                <div class="control-group">
+                    <div id="start-button" class="primary-button">
+                        <span id="start-text">开始模拟</span>
+                        <div class="button-icon">⚡</div>
+                    </div>
+                </div>
+
+                <div class="control-group editing-ui">
+                    <div id="preset-button" class="secondary-button">
+                        <span>随机预设</span>
+                        <div class="button-icon">🎲</div>
+                    </div>
+                </div>
+
+                <div class="control-group editing-ui">
+                    <div class="slider-container">
+                        <label class="slider-label">
+                            <span>粒子密度</span>
+                            <span id="density-value" class="value-display">0.5</span>
+                        </label>
+                        <input type="range" id="density-slider" class="native-slider" min="0" max="1" step="0.01" value="0.5">
+                    </div>
+                    <div id="particle-count" class="info-text"></div>
+                </div>
+
+                <div class="control-group simulating-ui">
+                    <div class="slider-container">
+                        <label class="slider-label">
+                            <span>流动性</span>
+                            <span id="fluidity-value" class="value-display">0.99</span>
+                        </label>
+                        <input type="range" id="fluidity-slider" class="native-slider" min="0.5" max="0.99" step="0.01" value="0.99">
+                    </div>
+                </div>
+
+                <div class="control-group simulating-ui">
+                    <div class="slider-container">
+                        <label class="slider-label">
+                            <span>模拟速度</span>
+                            <span id="speed-value" class="value-display">60 FPS</span>
+                        </label>
+                        <input type="range" id="speed-slider" class="native-slider" min="1" max="120" step="1" value="60">
+                    </div>
+                </div>
+
+                <div class="control-group advanced-controls">
+                    <button id="toggle-advanced" class="settings-button">
+                        <span>高级设置</span>
+                        <div class="button-icon">⚙️</div>
+                    </button>
+                    <div id="advanced-panel" class="advanced-panel" style="display: none;">
+                        <div class="slider-container">
+                            <label class="slider-label">
+                                <span>网格分辨率</span>
+                                <span id="resolution-value" class="value-display">40</span>
+                            </label>
+                            <input type="range" id="resolution-slider" class="native-slider" min="20" max="100" step="1" value="40">
+                        </div>
+                        <div class="slider-container">
+                            <label class="slider-label">
+                                <span>表面张力</span>
+                                <span id="tension-value" class="value-display">0.1</span>
+                            </label>
+                            <input type="range" id="tension-slider" class="native-slider" min="0" max="0.5" step="0.01" value="0.1">
+                        </div>
+                        <div class="slider-container">
+                            <label class="slider-label">
+                                <span>粘性</span>
+                                <span id="viscosity-value" class="value-display">0.01</span>
+                            </label>
+                            <input type="range" id="viscosity-slider" class="native-slider" min="0" max="0.1" step="0.001" value="0.01">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="performance-monitor">
+                    <div class="perf-item">
+                        <span class="perf-label">FPS:</span>
+                        <span id="fps-display" class="perf-value">60</span>
+                    </div>
+                    <div class="perf-item">
+                        <span class="perf-label">粒子数:</span>
+                        <span id="particle-display" class="perf-value">0</span>
+                    </div>
+                    <div class="perf-item">
+                        <span class="perf-label">GPU内存:</span>
+                        <span id="memory-display" class="perf-value">0 MB</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="quality-controls" class="quality-panel">
+                <div class="quality-presets">
+                    <button class="quality-btn" data-quality="low">省电模式</button>
+                    <button class="quality-btn active" data-quality="medium">平衡模式</button>
+                    <button class="quality-btn" data-quality="high">高质量</button>
+                    <button class="quality-btn" data-quality="ultra">极致模式</button>
+                </div>
+            </div>
+
+
+            <div id="camera-panel" class="camera-control-panel editing-ui">
+                <button id="toggle-camera" class="collapse-button">
+                    <span>摄像机控制</span>
+                    <div class="collapse-icon">▼</div>
+                </button>
+                <div id="camera-content" class="camera-content">
+                    <div class="instruction-group">
+                        <div class="instruction-item">
+                            <kbd>空格</kbd> + <span class="action">拖拽</span> <span class="desc">旋转视角</span>
+                        </div>
+                        <div class="instruction-item">
+                            <kbd>滚轮</kbd> <span class="desc">缩放视角</span>
+                        </div>
+                    </div>
+                    <div class="instruction-group">
+                        <h3>编辑模式</h3>
+                        <div class="instruction-item">
+                            <span class="action">在墙面绘制</span> <span class="desc">创建容器</span>
+                        </div>
+                        <div class="instruction-item">
+                            <span class="action">拖拽边界</span> <span class="desc">调整大小</span>
+                        </div>
+                        <div class="instruction-item">
+                            <kbd>Shift</kbd> + <span class="action">拖拽</span> <span class="desc">移动容器</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="interaction-panel" class="interaction-control-panel">
+                <button id="toggle-interaction" class="collapse-button">
+                    <span>交互控制</span>
+                    <div class="collapse-icon">▼</div>
+                </button>
+                <div id="interaction-content" class="interaction-content">
+                    <div class="instruction-group">
+                        <div class="instruction-item">
+                            <span class="action">拖拽</span> <span class="desc">旋转摄像机</span>
+                        </div>
+                        <div class="instruction-item">
+                            <kbd>滚轮</kbd> <span class="desc">缩放视角</span>
+                        </div>
+                        <div class="instruction-item">
+                            <span class="action">鼠标移动</span> <span class="desc">推动粒子</span>
+                        </div>
+                    </div>
+                    <div class="interaction-strength">
+                        <label>交互强度: <input type="range" id="interaction-strength" min="0" max="100" value="50"></label>
+                    </div>
+                </div>
+            </div>
+
+            <div id="footer">
+               Create By <a href="http://david.li">David.li</a> and Improve By <a href="https://github.com/1os3">1os3</a> | <a href="https://github.com/1os3/Fluid_Docker.git">@https://github.com/1os3/Fluid_Docker.git</a>
+            </div>
+        </script>
+
+        <script type="text/template" id="no-support">
+            <div id="container">
+                <div id="error"></div>
+                <div id="video">You can still view a video.<br/>
+                    <iframe width="854" height="480" style="margin-top: 7px;" src="https://www.youtube.com/embed/DhNt_A3k4B4" frameborder="0" allowfullscreen></iframe> 
+                </div>
+                <div id="linkback"><a href="http://david.li">david.li</a></div>
+            </div>
+        </script>
+
+
+        <div id="placeholder"></div>
+
+
+        <script src="performance-optimizer.js"></script>
+        <script src="wrappedgl.js"></script>
+        <script src="utilities.js"></script>
+        <script src="camera.js"></script>
+        <script src="boxeditor.js"></script>
+        <script src="simulator.js"></script>
+        <script src="renderer.js"></script>
+        <script src="simulatorrenderer.js"></script>
+        <script src="slider.js"></script>
+        <script src="fluidparticles.js"></script>
+        
+        <script>
+            // 添加面板折叠功能和滑块事件
+            document.addEventListener('DOMContentLoaded', function() {
+                // 交互面板折叠功能
+                const toggleInteractionButton = document.getElementById('toggle-interaction');
+                const interactionPanel = document.getElementById('interaction-panel');
+                
+                if (toggleInteractionButton && interactionPanel) {
+                    toggleInteractionButton.addEventListener('click', function() {
+                        interactionPanel.classList.toggle('collapsed');
+                    });
+                }
+                
+                // 摄像机面板折叠功能
+                const toggleCameraButton = document.getElementById('toggle-camera');
+                const cameraPanel = document.getElementById('camera-panel');
+                
+                if (toggleCameraButton && cameraPanel) {
+                    toggleCameraButton.addEventListener('click', function() {
+                        cameraPanel.classList.toggle('collapsed');
+                    });
+                }
+                
+                // 添加原生滑块的实时数值更新
+                function updateSliderValue(sliderId, valueId, formatter) {
+                    const slider = document.getElementById(sliderId);
+                    const valueDisplay = document.getElementById(valueId);
+                    
+                    if (slider && valueDisplay) {
+                        slider.addEventListener('input', function() {
+                            const value = parseFloat(this.value);
+                            valueDisplay.textContent = formatter ? formatter(value) : value.toFixed(2);
+                            valueDisplay.classList.add('value-updated');
+                            setTimeout(() => {
+                                valueDisplay.classList.remove('value-updated');
+                            }, 300);
+                        });
+                    }
+                }
+                
+                // 滑块事件监听器已在FluidParticles.js中设置，这里不需要重复设置
+            });
+        </script>
+
+        <script>
+            function concatenateWords (list) {
+                if (list.length === 0) {
+                    return '';
+                } else if (list.length === 1) {
+                    return "'" + list[0] + "'";
+                } else {
+                    var result = '';
+                    for (var i = 0; i < list.length; ++i) {
+                        result += "'" + list[i] + "'";
+                        if (i < list.length - 1) {
+                            result += i < list.length - 2 ? ', ' : ' and '
+                        }
+                    }
+
+                    return result;
+                }
+            }
+
+            WrappedGL.checkWebGLSupportWithExtensions(['ANGLE_instanced_arrays', 'WEBGL_depth_texture', 'OES_texture_float', 'OES_texture_float_linear', 'OES_texture_half_float', 'OES_texture_half_float_linear'],
+                function () { //we have webgl
+                    document.getElementById('placeholder').outerHTML = document.getElementById('main').innerHTML;
+                    var fluidBox = new FluidParticles();
+                }, function (hasWebGL, unsupportedExtensions) {
+                    document.getElementById('placeholder').outerHTML = document.getElementById('no-support').innerHTML;
+                    if (!hasWebGL) { //webgl not supported
+                        document.getElementById('error').textContent = 'Unfortunately, your browser does not support WebGL';
+                    } else {
+                        document.getElementById('error').textContent = 'Unfortunately, your browser does not support the ' + concatenateWords(unsupportedExtensions) + " WebGL extension" + (unsupportedExtensions.length > 1 ? 's.' : '.');
+                    }
+                }
+            );
+        </script>
+    </body>
+
+</html>
