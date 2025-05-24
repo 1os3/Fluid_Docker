@@ -1,86 +1,52 @@
-name: Docker Build, Publish and Deploy
+name: 构建并发布Docker镜像
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-  workflow_dispatch:  # 允许手动触发工作流
+    branches: [main]
+  workflow_dispatch:
 
-# 设置工作流权限
+# 全局权限设置
 permissions:
-  contents: write    # 允许推送到仓库
-  packages: write    # 允许推送到GitHub Packages
+  packages: write
+  contents: write
 
 jobs:
-  build-and-push:
+  docker:
+    name: 构建Docker镜像
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout repository
+      - name: 检出代码
         uses: actions/checkout@v3
 
-      - name: Set up Docker Buildx
+      - name: 设置QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: 设置Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Login to GitHub Container Registry
+      - name: 登录到GitHub容器注册表
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
+          username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image
+      - name: 提取元数据
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/Fluid_Docker
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+
+      - name: 构建并推送
         uses: docker/build-push-action@v4
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/fluid_docker:latest
-            ghcr.io/${{ github.repository_owner }}/fluid_docker:${{ github.sha }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          
-  deploy:
-    needs: build-and-push
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-      
-      - name: Add SSH known hosts
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
-      
-      - name: Deploy to server
-        run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            # 创建部署目录（如果不存在）
-            mkdir -p ~/fluid-docker
-            
-            # 创建或更新docker-compose.yml文件
-            cat > ~/fluid-docker/docker-compose.yml << 'EOFINNER'
-            services:
-              webfluid:
-                image: ghcr.io/${{ github.repository_owner }}/Fluid_Docker:latest
-                ports:
-                  - "9000:80"
-                restart: always
-            EOFINNER
-            
-            # 登录到GitHub Container Registry
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            
-            # 拉取最新镜像并重新启动容器
-            cd ~/fluid-docker
-            docker-compose pull
-            docker-compose up -d
-          EOF
