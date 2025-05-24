@@ -1,66 +1,80 @@
-name: Docker Build and Publish
+name: Docker Build, Publish and Deploy
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ main ]
+    branches: [ "main" ]
   workflow_dispatch:  # 允许手动触发工作流
 
 # 设置工作流权限
 permissions:
-  contents: write    # 允许推送到gh-pages分支
+  contents: write    # 允许推送到仓库
   packages: write    # 允许推送到GitHub Packages
 
 jobs:
-  build-and-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
-      
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
           context: .
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/fluid_docker:latest
-            ghcr.io/${{ github.repository_owner }}/fluid_docker:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/Fluid_Docker:latest
+            ghcr.io/${{ github.repository_owner }}/Fluid_Docker:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          
+  deploy:
+    needs: build-and-push
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
       
-      # 部署到服务器
-      - name: Deploy to server
-        uses: appleboy/ssh-action@master
-        if: github.ref == 'refs/heads/main'
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.7.0
         with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      
+      - name: Add SSH known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+      
+      - name: Deploy to server
+        run: |
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+            # 创建部署目录（如果不存在）
             mkdir -p ~/fluid-docker
             
             # 创建或更新docker-compose.yml文件
-            cat > ~/fluid-docker/docker-compose.yml << 'EOF'
+            cat > ~/fluid-docker/docker-compose.yml << 'EOFINNER'
             services:
               webfluid:
-                image: ghcr.io/${{ github.repository_owner }}/fluid_docker:latest
+                image: ghcr.io/${{ github.repository_owner }}/Fluid_Docker:latest
                 ports:
                   - "9000:80"
                 restart: always
-            EOF
+            EOFINNER
             
             # 登录到GitHub Container Registry
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -69,3 +83,4 @@ jobs:
             cd ~/fluid-docker
             docker-compose pull
             docker-compose up -d
+          EOF
