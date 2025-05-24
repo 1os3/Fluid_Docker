@@ -3,9 +3,7 @@
 基于WebGL的实时粒子流体模拟与渲染的Docker部署和优化版本。
 [本项目链接](https://github.com/1os3/Fluid_Docker)
 
-![流体模拟预览](http://david.li/images/fluidgithub.png)
-
-原项目: [http://david.li/fluid](http://david.li/fluid) ([视频演示](http://www.youtube.com/watch?v=DhNt_A3k4B4))
+原项目: [原项目链接](http://david.li/fluid) 
 
 ## 项目说明
 
