@@ -47,6 +47,16 @@ docker build -t fluid-particles .
 
 ## 部署
 
+### GitHub Pages 部署
+
+项目配置了自动部署到GitHub Pages的工作流。每次推送到main分支时，会自动：
+
+1. 构建项目文件
+2. 部署到GitHub Pages
+3. 可通过 `https://[用户名].github.io/[仓库名]` 访问
+
+### Docker 部署
+
 项目使用GitHub Actions自动构建和发布Docker镜像。每次推送到main分支时，都会触发构建流程并发布新的镜像版本。
 
 ## 许可证
