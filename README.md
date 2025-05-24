@@ -1,6 +1,7 @@
 # Fluid Particles Docker
 
 基于WebGL的实时粒子流体模拟与渲染的Docker部署和优化版本。
+[本项目链接](https://github.com/1os3/Fluid_Docker)
 
 ![流体模拟预览](http://david.li/images/fluidgithub.png)
 
@@ -46,14 +47,6 @@ docker build -t fluid-particles .
 ```
 
 ## 部署
-
-### GitHub Pages 部署
-
-项目配置了自动部署到GitHub Pages的工作流。每次推送到main分支时，会自动：
-
-1. 构建项目文件
-2. 部署到GitHub Pages
-3. 可通过 `https://[用户名].github.io/[仓库名]` 访问
 
 ### Docker 部署
 
