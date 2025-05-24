@@ -36,8 +36,8 @@ jobs:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/Fluid_Docker:latest
-            ghcr.io/${{ github.repository_owner }}/Fluid_Docker:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/fluid_docker:latest
+            ghcr.io/${{ github.repository_owner }}/fluid_docker:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           
