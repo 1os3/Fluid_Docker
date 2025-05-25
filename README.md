@@ -1,14 +1,13 @@
 # Fluid Particles Docker
 
-基于WebGL的实时粒子流体模拟与渲染的Docker部署版本。
+基于WebGL的实时粒子流体模拟与渲染的Docker部署和优化版本。
+[本项目链接](https://github.com/1os3/Fluid_Docker)
 
-![流体模拟预览](http://david.li/images/fluidgithub.png)
-
-原项目: [http://david.li/fluid](http://david.li/fluid) ([视频演示](http://www.youtube.com/watch?v=DhNt_A3k4B4))
+原项目: [原项目链接](http://david.li/fluid) 
 
 ## 项目说明
 
-这个项目是对[David Li的流体模拟项目](http://david.li/fluid)的Docker化部署。通过Docker容器技术，可以快速部署和运行这个基于WebGL的3D流体模拟应用。
+这个项目是对[David Li的流体模拟项目](http://david.li/fluid)的Docker化部署和优化。通过Docker容器技术，可以快速部署和运行这个基于WebGL的3D流体模拟应用。
 
 ## 特性
 
