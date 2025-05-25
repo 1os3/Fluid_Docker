@@ -1,0 +1,16 @@
+[build]
+  # 指定包含静态文件的目录
+  publish = "fluid"
+  
+  # 由于这是一个纯前端应用，不需要构建命令
+  command = ""
+
+# 设置重定向和头信息
+[[headers]]
+  # 为所有页面定义头信息
+  for = "/*"
+    [headers.values]
+    # 启用CORS
+    Access-Control-Allow-Origin = "*"
+    # 缓存策略
+    Cache-Control = "public, max-age=3600"
