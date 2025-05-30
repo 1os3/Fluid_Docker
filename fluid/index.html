@@ -194,8 +194,8 @@
         <script type="text/template" id="no-support">
             <div id="container">
                 <div id="error"></div>
-                <div id="video">You can still view a video.<br/>
-                    <iframe width="854" height="480" style="margin-top: 7px;" src="https://www.youtube.com/embed/DhNt_A3k4B4" frameborder="0" allowfullscreen></iframe> 
+                <div id="video">您仍然可以观看视频演示：<br/>
+                    <iframe src="//player.bilibili.com/player.html?isOutside=true&aid=114562766476238&bvid=BV1zZjtzNEwe&cid=30128868916&p=1" width="854" height="480" style="margin-top: 7px;" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>
                 </div>
                 <div id="linkback"><a href="http://david.li">david.li</a></div>
             </div>
@@ -286,9 +286,9 @@
                 }, function (hasWebGL, unsupportedExtensions) {
                     document.getElementById('placeholder').outerHTML = document.getElementById('no-support').innerHTML;
                     if (!hasWebGL) { //webgl not supported
-                        document.getElementById('error').textContent = 'Unfortunately, your browser does not support WebGL';
+                        document.getElementById('error').textContent = '很抱歉，您的浏览器不支持WebGL';
                     } else {
-                        document.getElementById('error').textContent = 'Unfortunately, your browser does not support the ' + concatenateWords(unsupportedExtensions) + " WebGL extension" + (unsupportedExtensions.length > 1 ? 's.' : '.');
+                        document.getElementById('error').textContent = '很抱歉，您的浏览器不支持以下WebGL扩展：' + concatenateWords(unsupportedExtensions) + (unsupportedExtensions.length > 1 ? '。' : '。');
                     }
                 }
             );
